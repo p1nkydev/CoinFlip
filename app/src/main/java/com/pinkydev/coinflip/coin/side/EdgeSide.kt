@@ -5,18 +5,13 @@ import android.graphics.Color
 import com.pinkydev.coinflip.data.RoundRect
 
 class EdgeSide(
-    private val left: Float,
-    private val right: Float,
-    private val top: Float,
-    private val bottom: Float
+    right: Float,
+    bottom: Float
 ) : CoinSide {
 
     private val edgeRect = RoundRect(
-        left = left,
         right = right,
-        top = top,
         bottom = bottom,
-        radius = bottom,
         color = Color.BLUE
     )
 

@@ -19,14 +19,13 @@ class Flip3dAnimation(
         t: Transformation
     ) {
         val degrees = fromDegrees + (toDegrees - fromDegrees) * interpolatedTime
-        t.matrix.postRotate(degrees, centerX, centerY)
         val matrix = t.matrix
         camera.save()
-        camera.rotateY(degrees)
+        camera.rotateX(degrees)
         camera.getMatrix(matrix)
         camera.restore()
-//        matrix.preTranslate(-centerX, -centerY)
-//        matrix.postTranslate(centerX, centerY)
+        matrix.preTranslate(-centerX, -centerY)
+        matrix.postTranslate(centerX, centerY)
     }
 
 }

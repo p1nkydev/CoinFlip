@@ -1,38 +1,51 @@
 package com.pinkydev.coinflip.coin
 
+import android.graphics.Camera
 import android.graphics.Canvas
+import android.graphics.Matrix
+import com.pinkydev.coinflip.coin.side.BackSide
 import com.pinkydev.coinflip.coin.side.CoinSide
+import com.pinkydev.coinflip.coin.side.FrontSide
 
 class Coin(
-    private val frontSide: CoinSide,
-    private val backSide: CoinSide,
-    private val edgeSide: CoinSide
+    left: Float,
+    right: Float,
+    top: Float,
+    bottom: Float
 ) {
 
-    private var actualFrontSide:CoinSide? = frontSide
+    private val camera = Camera()
+    private val matrix = Matrix()
 
+    private val width = right - left
+    private val height = bottom - top
 
-    fun rotate(degree: Float) {
-        var actualDegree = degree
-        when {
-            degree in 0f..80f -> {
-                actualFrontSide = frontSide
-            }
-            degree in 80f..90f -> {
-                actualFrontSide = null
-            }
-            degree > 90f -> {
-                actualDegree = 180 - degree
-                actualFrontSide = backSide
-            }
-        }
-        edgeSide.rotate(actualDegree)
-        actualFrontSide?.rotate(actualDegree)
+    private val centerX = width / 2
+    private val centerY = height / 2
+
+    private val frontSide = FrontSide(left, right, top, bottom)
+    private val backSide = BackSide(left, right, top, bottom)
+
+    private var actualFrontSide: CoinSide = frontSide
+
+    fun swapSide() {
+        actualFrontSide = if (actualFrontSide is FrontSide) backSide else frontSide
+    }
+
+    fun rotateCamera(degreeX: Float, translateZ: Float) {
+        camera.save()
+        camera.translate(camera.locationX, camera.locationY, translateZ)
+        camera.rotateX(degreeX)
+        camera.getMatrix(matrix)
+        camera.restore()
+        matrix.preTranslate(-centerX, -centerY)
+        matrix.postTranslate(centerX, centerY)
     }
 
     fun draw(canvas: Canvas) {
-        edgeSide.draw(canvas)
-        actualFrontSide?.draw(canvas)
+        canvas.setMatrix(matrix)
+        actualFrontSide.draw(canvas)
+        matrix.reset()
     }
 
 }
