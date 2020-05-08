@@ -32,10 +32,20 @@ class Coin(
         actualFrontSide = if (actualFrontSide is FrontSide) backSide else frontSide
     }
 
-    fun rotateCamera(degreeX: Float, translateZ: Float) {
+    fun rotateCameraX(degreeX: Float, translateZ: Float) {
         camera.save()
         camera.translate(camera.locationX, camera.locationY, translateZ)
         camera.rotateX(degreeX)
+        camera.getMatrix(matrix)
+        camera.restore()
+        matrix.preTranslate(-centerX, -centerY)
+        matrix.postTranslate(centerX, centerY)
+    }
+
+    fun rotateCameraY(degreeY: Float, translateZ: Float) {
+        camera.save()
+        camera.translate(camera.locationX, camera.locationY, translateZ)
+        camera.rotateY(degreeY)
         camera.getMatrix(matrix)
         camera.restore()
         matrix.preTranslate(-centerX, -centerY)
