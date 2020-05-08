@@ -1,2 +1,3 @@
 rootProject.name='CoinFlip'
 include ':app', ':server'
+include ':common'
