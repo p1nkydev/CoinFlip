@@ -1,94 +1,99 @@
 package com.pinkydev.server
 
 
-import com.google.api.client.http.HttpStatusCodes
-import com.google.appengine.repackaged.com.google.gson.Gson
-import com.pinkydev.common.RoomCreation
+import com.google.gson.Gson
+import com.pinkydev.common.model.RoomCreation
+import com.pinkydev.common.model.RoomJoin
 import com.pinkydev.server.auth.login
 import com.pinkydev.server.auth.signUp
 import com.pinkydev.server.local.user.UserCacheImpl
 import io.ktor.application.Application
 import io.ktor.application.call
 import io.ktor.application.install
-import io.ktor.auth.UserIdPrincipal
-import io.ktor.auth.authenticate
-import io.ktor.auth.authentication
-import io.ktor.auth.basic
 import io.ktor.features.CallLogging
 import io.ktor.features.ContentNegotiation
 import io.ktor.gson.gson
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.cio.websocket.Frame
 import io.ktor.request.receiveOrNull
 import io.ktor.response.respond
 import io.ktor.routing.get
 import io.ktor.routing.post
 import io.ktor.routing.routing
+import io.ktor.websocket.DefaultWebSocketServerSession
 import io.ktor.websocket.WebSockets
 import io.ktor.websocket.webSocket
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
+import org.slf4j.event.Level
+import java.time.Duration
 
 
 private val userCache = UserCacheImpl()
 
-private val roomService = RoomService(userCache)
+private val eventHandler = EventHandler()
 
-private val gson = Gson()
+private val roomService = RoomService(userCache, eventHandler)
 
+private val serializer = Gson()
+
+fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
+
+@Suppress("unused")
 fun Application.main() {
-    install(CallLogging)
-    install(ContentNegotiation) { gson() }
-    install(WebSockets)
+    install(ContentNegotiation) {
+        gson { setPrettyPrinting() }
+    }
 
-    authentication {
-        basic(name = "core_auth") {
-            validate { call ->
-                userCache
-                    .getUserByName(call.name)
-                    ?.let { UserIdPrincipal(call.name) }
-            }
-        }
+    install(CallLogging) {
+        level = Level.INFO
+    }
+
+    install(WebSockets) {
+        pingPeriod = Duration.ofSeconds(15)
+        timeout = Duration.ofSeconds(15)
+        maxFrameSize = Long.MAX_VALUE
+        masking = false
     }
 
     routing {
         login(userCache)
         signUp(userCache)
         webSocket("/pidor") {
-            println("connected")
-            launch {
-                println("launched")
-                roomService.observeRooms()
-                    .map { gson.toJson(it) }
-                    .onEach { outgoing.send(Frame.Text(it)) }
-                    .collect()
-                println("launch done")
-            }
-            println("web socket done")
+            eventHandler.events
+                .map { serializer.toJson(it) }
+                .collect {
+                    sendText(it)
+                }
         }
-        authenticate("core_auth") {
-            post("/room/create") {
-                val room = call.receiveOrNull<RoomCreation>()
-                if (room == null) {
-                    call.respond(HttpStatusCodes.STATUS_CODE_BAD_REQUEST)
-                } else {
-                    roomService.createRoom(room.creator, room.maxPlayersCount, room.moneyAmount)
-                    call.respond(HttpStatusCodes.STATUS_CODE_OK)
-                }
+        post("/room/create") {
+            val room = call.receiveOrNull<RoomCreation>()
+            if (room == null) {
+                call.respond(HttpStatusCode.BadRequest)
+            } else {
+                roomService.createRoom(room.creator, room.maxPlayersCount, room.moneyAmount)
+                call.respond(HttpStatusCode.OK)
             }
+        }
 
-            get("/room/join") {
-                val roomId = call.request.queryParameters["roomId"]?.toLong()
-                val playerId = call.request.queryParameters["playerId"]?.toInt()
+        get("/room/available") {
+            call.respond(HttpStatusCode.OK, roomService.rooms)
+        }
 
-                if (roomId != null && playerId != null) {
-                    roomService.joinRoom(roomId, playerId)
-                } else {
-                    call.respond(HttpStatusCodes.STATUS_CODE_BAD_REQUEST)
-                }
+        post("/room/join") {
+            val join = call.receiveOrNull<RoomJoin>()
+
+            if (join == null) {
+                call.respond(HttpStatusCode.BadRequest)
+            } else {
+                roomService.joinRoom(join.roomId, join.playerId)
+                call.respond(HttpStatusCode.OK)
             }
         }
 
     }
+}
+
+suspend fun DefaultWebSocketServerSession.sendText(text: String) {
+    outgoing.send(Frame.Text(text))
 }

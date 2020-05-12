@@ -1,6 +1,5 @@
-package com.pinkydev.server.model
+package com.pinkydev.common.model
 
-import com.pinkydev.common.Player
 import kotlin.random.Random.Default.nextInt
 
 data class Room(

@@ -1,4 +1,4 @@
-package com.pinkydev.common
+package com.pinkydev.common.model
 
 data class User(
     val id: Int = 0,

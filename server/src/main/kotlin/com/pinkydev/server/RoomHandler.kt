@@ -1,30 +1,18 @@
 package com.pinkydev.server
 
-import com.pinkydev.common.Player
-import com.pinkydev.common.PlayerJoinedEvent
-import com.pinkydev.common.RoomEvent
-import com.pinkydev.common.RoomWinnerEvent
+import com.pinkydev.common.event.PlayerJoinedEvent
+import com.pinkydev.common.event.RoomWinnerEvent
+import com.pinkydev.common.model.Player
+import com.pinkydev.common.model.Room
 import com.pinkydev.server.local.user.UserCache
-import com.pinkydev.server.model.Room
-import kotlinx.coroutines.channels.ProducerScope
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.channelFlow
 
-class RoomHandler(val room: Room, private val userCache: UserCache) {
+class RoomHandler(
+    val room: Room,
+    private val userCache: UserCache,
+    private val eventHandler: EventHandler
+) {
 
-    private lateinit var scope: ProducerScope<RoomEvent>
-
-    val events: Flow<RoomEvent> = channelFlow {
-        scope = this
-        awaitClose()
-    }
-
-    fun close() {
-        scope.close()
-    }
-
-    suspend fun join(player: Player) {
+    fun join(player: Player) {
         room.players = room.players + player
         if (room.players.size == room.maxPlayersCount) {
             val winner = room.winner
@@ -38,10 +26,9 @@ class RoomHandler(val room: Room, private val userCache: UserCache) {
             // updating winner
             val user = userCache.getUserById(winner.id)
             userCache.updateUser(user.copy(balance = user.balance + room.moneyAmount))
-            scope.send(RoomWinnerEvent(winner))
-            close()
+            eventHandler.notifyThat(RoomWinnerEvent(room, winner))
         } else {
-            scope.send(PlayerJoinedEvent(player))
+            eventHandler.notifyThat(PlayerJoinedEvent(room, player))
         }
     }
 

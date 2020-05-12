@@ -1,7 +1,7 @@
 package com.pinkydev.server.local.user
 
-import com.pinkydev.common.User
-import com.pinkydev.common.UserCredentials
+import com.pinkydev.common.model.User
+import com.pinkydev.common.model.UserCredentials
 
 class UserCacheImpl : UserCache {
 

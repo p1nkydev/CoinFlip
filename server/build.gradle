@@ -1,44 +1,45 @@
 apply plugin: 'kotlin'
+apply plugin: 'application'
 apply plugin: 'war'
 apply plugin: 'com.google.cloud.tools.appengine'
 
+group 'com.pinkydev.server'
+version '0.0.1'
+mainClassName = "io.ktor.server.netty.EngineMain"
+
 sourceSets {
-    main.kotlin.srcDirs = ['src/main/kotlin']
+    main.kotlin.srcDirs = main.java.srcDirs = ['src/main/kotlin']
+//    test.kotlin.srcDirs = test.java.srcDirs = ['test']
+//    main.resources.srcDirs = ['resources']
+//    test.resources.srcDirs = ['testresources']
 }
 
+appengine.deploy.projectId = 'coinflipserver'
+
+
 repositories {
+    mavenLocal()
     jcenter()
-    maven { url "https://kotlin.bintray.com/ktor" }
+    maven { url 'https://kotlin.bintray.com/ktor' }
+    maven { url 'https://kotlin.bintray.com/kotlinx' }
 }
 
 dependencies {
-    implementation "io.ktor:ktor-server-servlet:$ktor_version"
-    implementation "io.ktor:ktor-auth:$ktor_version"
-    implementation "io.ktor:ktor-websockets:$ktor_version"
-
-    implementation project(":common")
-    
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version"
     implementation "io.ktor:ktor-gson:$ktor_version"
 
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.5'
+    implementation project(":common")
 
-
-    implementation 'com.google.api-client:google-api-client:1.30.2'
-    implementation 'com.google.oauth-client:google-oauth-client-jetty:1.23.0'
-    implementation 'com.google.apis:google-api-services-sheets:v4-rev516-1.23.0'
-    implementation 'com.google.apis:google-api-services-drive:v3-rev165-1.25.0'
-    implementation 'com.google.appengine:appengine-api-1.0-sdk:1.9.76'
-    implementation 'com.google.auth:google-auth-library-oauth2-http:0.17.1'
-
-
+    implementation "io.ktor:ktor-server-netty:$ktor_version"
+    implementation "ch.qos.logback:logback-classic:1.2.3"
+    implementation "io.ktor:ktor-server-core:$ktor_version"
+    implementation "io.ktor:ktor-websockets:$ktor_version"
+    implementation "io.ktor:ktor-auth:$ktor_version"
+    implementation "io.ktor:ktor-client-core:$ktor_version"
+    implementation "io.ktor:ktor-client-core-jvm:$ktor_version"
+    implementation "io.ktor:ktor-client-json-jvm:$ktor_version"
+    implementation "io.ktor:ktor-client-gson:$ktor_version"
+    implementation "io.ktor:ktor-client-cio:$ktor_version"
+    implementation "io.ktor:ktor-client-websockets:$ktor_version"
+    testImplementation "io.ktor:ktor-server-tests:$ktor_version"
 }
-
-appengine {
-    deploy {
-        version = "GCLOUD_CONFIG"
-        projectId = "GCLOUD_CONFIG"
-    }
-}
-
-sourceCompatibility = "8"
-targetCompatibility = "8"
