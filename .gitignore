@@ -12,6 +12,14 @@
 /captures
 .externalNativeBuild
 .cxx
+/gradlew
+/gradlew.bat
+/gradle/
+/.idea/
+/build/
+/app/src/androidTest/java/com/pinkydev/coinflip/
+/app/src/test/java/com/pinkydev/coinflip/
+/server/build/
 /gradle/wrapper/gradle-wrapper.jar
 /gradlew
 /gradlew.bat

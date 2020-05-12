@@ -11,7 +11,7 @@ class BackSide(
     bottom: Float
 ) : CoinSide {
 
-    private val outlineWidth = 30f
+    private val outlineWidth = right * 0.05f
 
     private val biggerOval =
         Oval(left, right, top, bottom, Color.BLACK)

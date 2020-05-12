@@ -4,6 +4,7 @@ buildscript {
     ext.ktor_version = '1.2.2'
     ext.appengine_version = '1.9.60'
     ext.appengine_plugin_version = '2.2.0'
+    ext.koin_version = '2.0.1'
 
     repositories {
         google()
