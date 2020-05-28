@@ -2,6 +2,8 @@ package com.pinkydev.coinflip
 
 import android.animation.ValueAnimator
 import android.animation.ValueAnimator.INFINITE
+import android.util.Log
+import android.view.animation.AccelerateInterpolator
 import android.view.animation.LinearInterpolator
 import com.pinkydev.coinflip.coin.Coin
 import kotlin.math.sin
@@ -72,5 +74,21 @@ class Flipper(
 
     private fun animator(animator: ValueAnimator.() -> Unit) =
         ValueAnimator.ofFloat(0f, 1f).apply(animator)
+
+    fun zoomIn() {
+        val fromZ = 1000f
+        val toZ = 100
+        animator {
+            duration = 2000
+            interpolator = AccelerateInterpolator()
+            addUpdateListener {
+                val progress = it.animatedValue as Float
+                val zProgress = (fromZ - (fromZ * progress)) + toZ
+                Log.e("ZOOMER", "zooming: $zProgress")
+                coin.rotateCameraX(0f, zProgress)
+                frameRequester.onFrameReady(coin)
+            }
+        }.start()
+    }
 
 }

@@ -13,20 +13,8 @@ import io.ktor.util.pipeline.PipelineContext
 fun Route.login(userCache: UserCacheImpl) {
     get("/login") {
         getCredentials()?.let { credentials ->
-
-            userCache.login(credentials)?.let {
-                call.respond(HttpStatusCode.OK)
-            } ?: call.respond(HttpStatusCode.Forbidden)
-
-        } ?: call.respond(HttpStatusCode.BadRequest)
-    }
-}
-
-fun Route.signUp(userCache: UserCacheImpl) {
-    get("/signup") {
-        getCredentials()?.let {
-            userCache.registerUser(it)
-            call.respond(HttpStatusCode.OK)
+            val user = userCache.login(credentials) ?: userCache.registerUser(credentials)
+            call.respond(HttpStatusCode.OK, user)
         } ?: call.respond(HttpStatusCode.BadRequest)
     }
 }

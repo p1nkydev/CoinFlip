@@ -2,10 +2,9 @@ package com.pinkydev.server
 
 
 import com.google.gson.Gson
-import com.pinkydev.common.model.RoomCreation
-import com.pinkydev.common.model.RoomJoin
+import com.pinkydev.common.event.SearchGameEvent
+import com.pinkydev.common.event.SocketEvent
 import com.pinkydev.server.auth.login
-import com.pinkydev.server.auth.signUp
 import com.pinkydev.server.local.user.UserCacheImpl
 import io.ktor.application.Application
 import io.ktor.application.call
@@ -15,25 +14,23 @@ import io.ktor.features.ContentNegotiation
 import io.ktor.gson.gson
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.cio.websocket.Frame
-import io.ktor.request.receiveOrNull
+import io.ktor.http.cio.websocket.WebSocketSession
+import io.ktor.http.cio.websocket.readText
+import io.ktor.http.cio.websocket.send
 import io.ktor.response.respond
 import io.ktor.routing.get
-import io.ktor.routing.post
 import io.ktor.routing.routing
-import io.ktor.websocket.DefaultWebSocketServerSession
 import io.ktor.websocket.WebSockets
 import io.ktor.websocket.webSocket
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.channels.consume
+import kotlinx.coroutines.flow.*
 import org.slf4j.event.Level
 import java.time.Duration
 
 
 private val userCache = UserCacheImpl()
 
-private val eventHandler = EventHandler()
-
-private val roomService = RoomService(userCache, eventHandler)
+private val roomService = RoomService(userCache)
 
 private val serializer = Gson()
 
@@ -50,50 +47,53 @@ fun Application.main() {
     }
 
     install(WebSockets) {
-        pingPeriod = Duration.ofSeconds(15)
-        timeout = Duration.ofSeconds(15)
+        pingPeriod = Duration.ofSeconds(1000)
+        timeout = Duration.ofSeconds(10000)
         maxFrameSize = Long.MAX_VALUE
         masking = false
     }
 
     routing {
         login(userCache)
-        signUp(userCache)
         webSocket("/pidor") {
-            eventHandler.events
-                .map { serializer.toJson(it) }
-                .collect {
-                    sendText(it)
-                }
-        }
-        post("/room/create") {
-            val room = call.receiveOrNull<RoomCreation>()
-            if (room == null) {
-                call.respond(HttpStatusCode.BadRequest)
-            } else {
-                roomService.createRoom(room.creator, room.maxPlayersCount, room.moneyAmount)
-                call.respond(HttpStatusCode.OK)
+
+            for (each in incoming) {
+                incoming
+
+
+
+                flowOf(each)
+                    .filterIsInstance<Frame.Text>()
+                    .map { it.readText() }
+                    .filter { it.contains(SocketEvent.TYPE_SEARCH_GAME) }
+                    .map { serializer.fromJson(it, SearchGameEvent::class.java) }
+                    .onEach { event ->
+                        roomService.getRoomBy(event.searchRequest)?.let {
+                            roomService.joinPlayerTo(event.searchRequest.player, it, this)
+                        } ?: kotlin.run {
+                            roomService.createRoom(event.searchRequest, this)
+                        }
+                    }
+                    .collect()
             }
+        }
+
+        get("/room/cancel") {
+            val playerId = call.request.queryParameters["playerId"]?.toInt() ?: kotlin.run {
+                call.respond(HttpStatusCode.BadRequest)
+                return@get
+            }
+            roomService.cancelGame(playerId)
+            call.respond(HttpStatusCode.OK)
         }
 
         get("/room/available") {
-            call.respond(HttpStatusCode.OK, roomService.rooms)
-        }
-
-        post("/room/join") {
-            val join = call.receiveOrNull<RoomJoin>()
-
-            if (join == null) {
-                call.respond(HttpStatusCode.BadRequest)
-            } else {
-                roomService.joinRoom(join.roomId, join.playerId)
-                call.respond(HttpStatusCode.OK)
-            }
+            call.respond(HttpStatusCode.OK, roomService.roomSession.keys)
         }
 
     }
 }
 
-suspend fun DefaultWebSocketServerSession.sendText(text: String) {
-    outgoing.send(Frame.Text(text))
+suspend fun <T> WebSocketSession.send(what: T) {
+    send(serializer.toJson(what))
 }

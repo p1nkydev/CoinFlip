@@ -1,15 +1,19 @@
 package com.pinkydev.coinflip.coin.side
 
+import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
+import com.pinkydev.coinflip.R
 import com.pinkydev.coinflip.data.Oval
+import org.koin.core.KoinComponent
+import org.koin.core.get
 
 class FrontSide(
     left: Float,
     right: Float,
     top: Float,
     bottom: Float
-) : CoinSide {
+) : CoinSide, KoinComponent {
 
     private val outlineWidth = right * 0.05f
 
@@ -21,7 +25,7 @@ class FrontSide(
         right = right - outlineWidth,
         top = top + outlineWidth,
         bottom = bottom - outlineWidth,
-        color = Color.RED
+        color = get<Context>().getColor(R.color.colorAccent)
     )
 
     override fun draw(canvas: Canvas) {

@@ -1,3 +1,3 @@
 package com.pinkydev.common.model
 
-data class RoomJoin(val playerId: Int, val roomId: Long)
+data class RoomJoin(val playerId: Int, val minMoney: Float)

@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_coin"
+        android:tint="@android:color/holo_green_light"
+        android:layout_marginEnd="@dimen/small"
+        app:layout_constraintBottom_toBottomOf="@+id/tvBalance"
+        app:layout_constraintEnd_toStartOf="@+id/tvBalance"
+        app:layout_constraintTop_toTopOf="@+id/tvBalance" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/tvBalance"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/medium"
+        android:layout_marginEnd="@dimen/medium"
+        android:textSize="26sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="123" />
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/ivCancelGame"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="@dimen/medium"
+        android:layout_marginStart="@dimen/medium"
+        android:src="@android:drawable/ic_delete"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tvRoomMoney"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="36sp"
+        app:layout_constraintBottom_toTopOf="@+id/flipView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="$24" />
+
+    <com.pinkydev.coinflip.FlipView
+        android:id="@+id/flipView"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.38" />
+
+    <TextView
+        android:id="@+id/tvCountDown"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="3"
+        android:textSize="32sp"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="@+id/flipView"
+        app:layout_constraintEnd_toEndOf="@+id/flipView"
+        app:layout_constraintStart_toStartOf="@+id/flipView"
+        app:layout_constraintTop_toTopOf="@+id/flipView" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardLeft"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        app:cardBackgroundColor="@color/colorAccent"
+        app:cardCornerRadius="40dp"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toTopOf="@+id/btnOk"
+        app:layout_constraintEnd_toStartOf="@+id/cardRight"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/flipView"
+        app:layout_constraintVertical_bias="0.52">
+
+        <TextView
+            android:id="@+id/tvShortLeft"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:textColor="@android:color/white"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            tools:text="L" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+
+    <ProgressBar
+        android:id="@+id/pbLeft"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:indeterminate="true"
+        app:layout_constraintBottom_toBottomOf="@+id/cardLeft"
+        app:layout_constraintEnd_toEndOf="@+id/cardLeft"
+        app:layout_constraintStart_toStartOf="@+id/cardLeft"
+        app:layout_constraintTop_toTopOf="@+id/cardLeft" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/tvLeftPlayerName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/small"
+        app:layout_constraintEnd_toEndOf="@+id/cardLeft"
+        app:layout_constraintStart_toStartOf="@+id/cardLeft"
+        app:layout_constraintTop_toBottomOf="@+id/cardLeft"
+        tools:text="Name" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardRight"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        app:cardBackgroundColor="@color/colorPrimary"
+        app:cardCornerRadius="40dp"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toTopOf="@+id/btnOk"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/cardLeft"
+        app:layout_constraintTop_toBottomOf="@+id/flipView"
+        app:layout_constraintVertical_bias="0.52">
+
+        <TextView
+            android:id="@+id/tvShortRight"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:textColor="@android:color/white"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            tools:text="L" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <ProgressBar
+        android:id="@+id/pbRight"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:indeterminate="true"
+        android:indeterminateTint="@color/colorPrimary"
+        app:layout_constraintBottom_toTopOf="@+id/tvRightPlayerName"
+        app:layout_constraintEnd_toEndOf="@+id/cardRight" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/tvRightPlayerName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/small"
+        app:layout_constraintEnd_toEndOf="@+id/cardRight"
+        app:layout_constraintStart_toStartOf="@+id/cardRight"
+        app:layout_constraintTop_toBottomOf="@+id/cardRight"
+        tools:text="Name 2" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnOk"
+        style="@style/PrimaryButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/medium"
+        android:layout_marginEnd="@dimen/medium"
+        android:layout_marginBottom="@dimen/medium"
+        android:enabled="false"
+        android:text="OK"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:layout_editor_absoluteX="16dp" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
