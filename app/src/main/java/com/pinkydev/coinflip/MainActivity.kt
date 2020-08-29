@@ -16,6 +16,7 @@ import com.pinkydev.common.event.SocketEvent
 import com.pinkydev.common.event.SocketEvent.Companion.TYPE_PLAYER_JOINED
 import com.pinkydev.common.event.SocketEvent.Companion.TYPE_PLAYER_WON
 import com.pinkydev.common.model.User
+import com.pinkydev.common.model.UserToken
 import kotlinx.coroutines.flow.MutableStateFlow
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -28,52 +29,82 @@ import retrofit2.http.Query
 
 interface Basic {
 
+    @GET("room/cancel")
+    suspend fun cancel(
+        @Query("playerId")
+        playerId: Int
+    )
+
+    @GET("user")
+    suspend fun getUser(): User
+}
+
+interface Auth {
     @GET("login")
     suspend fun login(
         @Query("username")
         username: String,
         @Query("password")
         password: String
-    ): User
-
-    @GET("room/cancel")
-    suspend fun cancel(
-        @Query("playerId")
-        playerId: Int
-    )
+    ): UserToken
 }
+
+var token = UserToken("")
 
 val gson = Gson()
 
-val service: Basic = Retrofit.Builder()
-    .client(OkHttpClient.Builder().build())
-    .addConverterFactory(GsonConverterFactory.create())
-    .baseUrl("http://192.168.0.102:8080/")
-    .build()
-    .create(Basic::class.java)
+val authService: Auth by lazy {
+    Retrofit.Builder()
+        .client(OkHttpClient())
+        .addConverterFactory(GsonConverterFactory.create())
+        .baseUrl("http://192.168.0.102:8080/")
+        .build()
+        .create(Auth::class.java)
+}
+
+val service: Basic by lazy {
+    Retrofit.Builder()
+        .client(OkHttpClient.Builder()
+            .addInterceptor {
+                val req = it
+                    .request()
+                    .newBuilder()
+                    .addHeader("Authorization", "Bearer ${token.token}")
+                    .build()
+                it.proceed(req)
+            }
+            .build())
+        .addConverterFactory(GsonConverterFactory.create())
+        .baseUrl("http://192.168.0.102:8080/")
+        .build()
+        .create(Basic::class.java)
+}
 
 val socketFlow = MutableStateFlow<SocketEvent?>(null)
 
-val socket = OkHttpClient().newWebSocket(
-    Request.Builder()
-        .url("ws://192.168.0.102:8080/pidor").build(),
-    object : WebSocketListener() {
+val socket by lazy {
+    OkHttpClient().newWebSocket(
+        Request.Builder()
+            .addHeader("Authorization", "Bearer ${token.token}")
+            .url("ws://192.168.0.102:8080/pidor").build(),
+        object : WebSocketListener() {
 
-        override fun onMessage(webSocket: WebSocket, text: String) {
-            Log.e("TAGGIR", "web socket: $text")
-            val event = when {
-                text.contains(TYPE_PLAYER_JOINED) -> gson.fromJson(
-                    text,
-                    PlayerJoinedEvent::class.java
-                )
-                text.contains(TYPE_PLAYER_WON) -> gson.fromJson(text, RoomWinnerEvent::class.java)
-                else -> null
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                Log.e("TAGGIR", "web socket: $text")
+                val event = when {
+                    text.contains(TYPE_PLAYER_JOINED) -> gson.fromJson(
+                        text,
+                        PlayerJoinedEvent::class.java
+                    )
+                    text.contains(TYPE_PLAYER_WON) -> gson.fromJson(text, RoomWinnerEvent::class.java)
+                    else -> null
+                }
+
+                socketFlow.value = event
             }
-
-            socketFlow.value = event
         }
-    }
-)
+    )
+}
 
 
 class MainActivity : AppCompatActivity() {

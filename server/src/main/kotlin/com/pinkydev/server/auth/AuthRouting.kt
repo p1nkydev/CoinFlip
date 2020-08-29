@@ -1,7 +1,7 @@
 package com.pinkydev.server.auth
 
 import com.pinkydev.common.model.UserCredentials
-import com.pinkydev.server.local.user.UserCacheImpl
+import com.pinkydev.server.userCache
 import io.ktor.application.ApplicationCall
 import io.ktor.application.call
 import io.ktor.http.HttpStatusCode
@@ -10,11 +10,11 @@ import io.ktor.routing.Route
 import io.ktor.routing.get
 import io.ktor.util.pipeline.PipelineContext
 
-fun Route.login(userCache: UserCacheImpl) {
+fun Route.login() {
     get("/login") {
         getCredentials()?.let { credentials ->
-            val user = userCache.login(credentials) ?: userCache.registerUser(credentials)
-            call.respond(HttpStatusCode.OK, user)
+            val token = userCache.login(credentials) ?: userCache.registerUser(credentials)
+            call.respond(HttpStatusCode.OK, token)
         } ?: call.respond(HttpStatusCode.BadRequest)
     }
 }

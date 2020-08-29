@@ -7,8 +7,6 @@ import android.widget.SeekBar
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.pinkydev.coinflip.*
-import com.pinkydev.coinflip.flow.auth.login
-import com.pinkydev.coinflip.flow.auth.pass
 import com.pinkydev.coinflip.flow.auth.user
 import com.pinkydev.coinflip.flow.game.GameFragment
 import com.pinkydev.common.event.SearchGameEvent
@@ -50,7 +48,7 @@ class SetupGameFragment : Fragment(R.layout.fragment_setup_game) {
         super.onViewCreated(view, savedInstanceState)
 
         lifecycleScope.launch {
-            user = service.login(login, pass)
+            user = service.getUser()
             setupClicks()
         }
     }

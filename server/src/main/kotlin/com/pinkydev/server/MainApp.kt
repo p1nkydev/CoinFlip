@@ -1,43 +1,59 @@
 package com.pinkydev.server
 
 
+import com.auth0.jwt.JWT
+import com.auth0.jwt.JWTVerifier
+import com.auth0.jwt.algorithms.Algorithm
 import com.google.gson.Gson
-import com.pinkydev.common.event.SearchGameEvent
-import com.pinkydev.common.event.SocketEvent
+import com.pinkydev.common.model.UserToken
 import com.pinkydev.server.auth.login
+import com.pinkydev.server.game.gameSocket
+import com.pinkydev.server.game.rooms
 import com.pinkydev.server.local.user.UserCacheImpl
-import io.ktor.application.Application
-import io.ktor.application.call
-import io.ktor.application.install
-import io.ktor.features.CallLogging
-import io.ktor.features.ContentNegotiation
-import io.ktor.gson.gson
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.cio.websocket.Frame
-import io.ktor.http.cio.websocket.WebSocketSession
-import io.ktor.http.cio.websocket.readText
+import io.ktor.application.*
+import io.ktor.auth.*
+import io.ktor.auth.jwt.*
+import io.ktor.features.*
+import io.ktor.gson.*
+import io.ktor.http.*
+import io.ktor.http.cio.websocket.*
 import io.ktor.http.cio.websocket.send
-import io.ktor.response.respond
-import io.ktor.routing.get
-import io.ktor.routing.routing
-import io.ktor.websocket.WebSockets
-import io.ktor.websocket.webSocket
-import kotlinx.coroutines.channels.consume
-import kotlinx.coroutines.flow.*
+import io.ktor.request.*
+import io.ktor.response.*
+import io.ktor.routing.*
+import io.ktor.websocket.*
 import org.slf4j.event.Level
 import java.time.Duration
 
 
-private val userCache = UserCacheImpl()
+val userCache = UserCacheImpl()
 
-private val roomService = RoomService(userCache)
+val roomService = RoomService(userCache)
 
-private val serializer = Gson()
+val serializer = Gson()
+
+val simpleJwt = SimpleJWT("my-super-secret-for-jwt")
+
+class SimpleJWT(secret: String) {
+    private val algorithm = Algorithm.HMAC256(secret)
+    val verifier: JWTVerifier = JWT.require(algorithm).build()
+    fun sign(name: String): String = JWT.create().withClaim("name", name).sign(algorithm)
+}
+
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
 @Suppress("unused")
 fun Application.main() {
+    install(Authentication) {
+        jwt {
+            verifier(simpleJwt.verifier)
+            validate {
+                UserIdPrincipal(it.payload.getClaim("name").asString())
+            }
+        }
+    }
+
     install(ContentNegotiation) {
         gson { setPrettyPrinting() }
     }
@@ -54,43 +70,23 @@ fun Application.main() {
     }
 
     routing {
-        login(userCache)
-        webSocket("/pidor") {
+        login()
+        authenticate {
+            gameSocket()
+            rooms()
+            user()
+        }
+    }
+}
 
-            for (each in incoming) {
-                incoming
-
-
-
-                flowOf(each)
-                    .filterIsInstance<Frame.Text>()
-                    .map { it.readText() }
-                    .filter { it.contains(SocketEvent.TYPE_SEARCH_GAME) }
-                    .map { serializer.fromJson(it, SearchGameEvent::class.java) }
-                    .onEach { event ->
-                        roomService.getRoomBy(event.searchRequest)?.let {
-                            roomService.joinPlayerTo(event.searchRequest.player, it, this)
-                        } ?: kotlin.run {
-                            roomService.createRoom(event.searchRequest, this)
-                        }
-                    }
-                    .collect()
-            }
+private fun Route.user() {
+    get("/user") {
+        val token = call.request.authorization()?.removePrefix("Bearer ") ?: kotlin.run {
+            call.respond(HttpStatusCode.Unauthorized)
+            return@get
         }
 
-        get("/room/cancel") {
-            val playerId = call.request.queryParameters["playerId"]?.toInt() ?: kotlin.run {
-                call.respond(HttpStatusCode.BadRequest)
-                return@get
-            }
-            roomService.cancelGame(playerId)
-            call.respond(HttpStatusCode.OK)
-        }
-
-        get("/room/available") {
-            call.respond(HttpStatusCode.OK, roomService.roomSession.keys)
-        }
-
+        call.respond(HttpStatusCode.OK, userCache.getUserByToken(UserToken(token)))
     }
 }
 
