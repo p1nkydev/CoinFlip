@@ -1,10 +1,7 @@
 package com.pinkydev.server
 
-import com.pinkydev.common.event.SearchGameEvent
-import com.pinkydev.common.model.Player
-import com.pinkydev.common.model.SearchRequest
-import com.pinkydev.common.model.User
-import com.pinkydev.common.model.UserToken
+import com.pinkydev.common.event.*
+import com.pinkydev.common.model.*
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.features.json.Json
@@ -18,6 +15,8 @@ import io.ktor.http.cio.websocket.readText
 import io.ktor.util.KtorExperimentalAPI
 import kotlinx.coroutines.channels.filterNotNull
 import kotlinx.coroutines.channels.map
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.runBlocking
 
 object Player1 {
@@ -34,7 +33,7 @@ object Player1 {
 
             println("login")
             val token = client.get<UserToken>(
-                host = "192.168.0.102",
+                host = "0.0.0.0",
                 port = 8080,
                 path = "/login?username=123&password=123"
             )
@@ -43,7 +42,7 @@ object Player1 {
                 header("Authorization", "Bearer ${token.token}")
                 method = HttpMethod.Get
                 url {
-                    host = "192.168.0.102"
+                    host = "0.0.0.0"
                     path("user")
                     port = 8080
                 }
@@ -54,7 +53,7 @@ object Player1 {
             val request: HttpRequestBuilder.() -> Unit = {
                 header("Authorization", "Bearer ${token.token}")
                 method = HttpMethod.Get
-                host = "127.0.0.1"
+                host = "0.0.0.0"
                 port = 8080
                 url {
                     path("pidor")
@@ -62,10 +61,9 @@ object Player1 {
             }
             client.ws(request) {
                 send(
-                    SearchGameEvent(
-                        SearchRequest(
+                    CreateRoomEvent(
+                        CreateRoomRequest(
                             player = Player(me.id, me.name, 0),
-                            maxPlayersCount = 2,
                             moneyAmount = 50
                         )
                     )
@@ -93,16 +91,16 @@ object Player2 {
 
             println("login")
             val token = client.get<UserToken>(
-                host = "192.168.0.102",
+                host = "0.0.0.0",
                 port = 8080,
-                path = "/login?username=123&password=123"
+                path = "/login?username=1337&password=123"
             )
 
             val me = client.request<User> {
                 header("Authorization", "Bearer ${token.token}")
                 method = HttpMethod.Get
                 url {
-                    host = "192.168.0.102"
+                    host = "0.0.0.0"
                     path("user")
                     port = 8080
                 }
@@ -113,25 +111,34 @@ object Player2 {
             val request: HttpRequestBuilder.() -> Unit = {
                 header("Authorization", "Bearer ${token.token}")
                 method = HttpMethod.Get
-                host = "127.0.0.1"
+                host = "0.0.0.0"
                 port = 8080
                 url {
                     path("pidor")
                 }
             }
             client.ws(request) {
-                send(
-                    SearchGameEvent(
-                        SearchRequest(
-                            player = Player(me.id, me.name, 1),
-                            maxPlayersCount = 2,
-                            moneyAmount = 60
-                        )
-                    )
-                )
-                for (message in incoming.map { it as? Frame.Text }.filterNotNull()) {
-                    println("Player1 server message: " + message.readText())
-                }
+                send(GetRoomsEvent())
+                incoming.consumeAsFlow()
+                    .map { it as? Frame.Text }
+                    .filterNotNull()
+                    .map { it.readText() }
+                    .onEach { text ->
+                        if (text.contains(SocketEvent.TYPE_AVAILABLE_ROOMS_RESPONSE)) {
+                            val rooms = serializer.fromJson(text, AvailableRoomsEvent::class.java)
+                            send(
+                                JoinToRoomEvent(
+                                    JoinToRoomRequest(
+                                        player = Player(me.id, me.name, 1),
+                                        rooms.rooms.first()
+                                    )
+                                )
+                            )
+                            println("Player2 received rooms: $text")
+                        } else {
+                            println("Player2 received event: $text")
+                        }
+                    }.collect()
             }
         }
     }

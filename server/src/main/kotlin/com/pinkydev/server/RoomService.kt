@@ -3,11 +3,14 @@ package com.pinkydev.server
 import com.pinkydev.common.event.PlayerJoinedEvent
 import com.pinkydev.common.event.RoomWinnerEvent
 import com.pinkydev.common.event.SocketEvent
+import com.pinkydev.common.model.CreateRoomRequest
 import com.pinkydev.common.model.Player
 import com.pinkydev.common.model.Room
-import com.pinkydev.common.model.SearchRequest
+import com.pinkydev.common.model.JoinToRoomRequest
 import com.pinkydev.server.local.user.UserCache
-import io.ktor.http.cio.websocket.WebSocketSession
+import io.ktor.http.cio.websocket.*
+import kotlinx.coroutines.delay
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.random.Random
 
 class RoomService(private val userCache: UserCache) {
@@ -20,28 +23,27 @@ class RoomService(private val userCache: UserCache) {
 
     val roomSession = mutableMapOf<Room, MutableList<WebSocketSession>>()
 
-    fun getRoomBy(searchRequest: SearchRequest): Room? = roomSession.keys.firstOrNull {
-        it.maxPlayersCount == searchRequest.maxPlayersCount
-                && it.moneyAmount <= searchRequest.moneyAmount
-                && it.players.first().joinedSide != searchRequest.player.joinedSide
+    fun getAllRooms(): List<Room> {
+        return roomSession.keys.toList()
     }
 
     suspend fun createRoom(
-        searchRequest: SearchRequest,
+        createRoomRequest: CreateRoomRequest,
         session: WebSocketSession
     ) {
         val room = Room(
-            newRoomId, searchRequest.maxPlayersCount, searchRequest.moneyAmount,
-            listOf()
+            newRoomId,
+            players = listOf(),
+            moneyAmount = createRoomRequest.moneyAmount,
         )
         roomSession[room] = mutableListOf()
-        joinPlayerTo(searchRequest.player, room, session)
+        joinPlayerTo(createRoomRequest.player, room, session)
     }
 
     suspend fun joinPlayerTo(player: Player, room: Room, session: WebSocketSession) {
         room.players += player
         roomSession.get(room)?.add(session)
-        if (room.players.size < room.maxPlayersCount) {
+        if (room.players.size < 2) {
             room.broadcast(PlayerJoinedEvent(player))
         } else {
             val winner = room.players.random()
@@ -61,11 +63,15 @@ class RoomService(private val userCache: UserCache) {
                 winner = winner,
                 looser = room.players.first { it.id != winner.id },
                 moneyAmount = room.moneyAmount,
-                spins = calculateSpinsCount(winner),
-                time = Random.nextLong(from = 1000, until = 3000)
+                spins = calculateSpinsCount(winner.joinedSide),
+                time = Random.nextLong(from = 3000, until = 6000)
             )
 
             room.broadcast(event)
+//            roomSession.get(room)?.forEach {
+//                it.flush()
+//                it.close()
+//            }
             roomSession.remove(room)
         }
     }
@@ -78,9 +84,9 @@ class RoomService(private val userCache: UserCache) {
         room?.let { roomSession.remove(it) }
     }
 
-    private fun calculateSpinsCount(winner: Player): Int {
-        val random = Random.nextInt(from = 4, until = 20)
-        return if (random % 2 == winner.joinedSide) random else random + 1
+    private fun calculateSpinsCount(winnerSide: Int): Int {
+        val random = Random.nextInt(from = 5, until = 50)
+        return if (random % 2 == winnerSide) random else random + 1
     }
 
     private suspend fun Room.broadcast(event: SocketEvent) {

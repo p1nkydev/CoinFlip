@@ -10,9 +10,11 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
 import com.pinkydev.coinflip.coin.Coin
 import com.pinkydev.coinflip.flow.create.SetupGameFragment
+import com.pinkydev.common.event.AvailableRoomsEvent
 import com.pinkydev.common.event.PlayerJoinedEvent
 import com.pinkydev.common.event.RoomWinnerEvent
 import com.pinkydev.common.event.SocketEvent
+import com.pinkydev.common.event.SocketEvent.Companion.TYPE_AVAILABLE_ROOMS_RESPONSE
 import com.pinkydev.common.event.SocketEvent.Companion.TYPE_PLAYER_JOINED
 import com.pinkydev.common.event.SocketEvent.Companion.TYPE_PLAYER_WON
 import com.pinkydev.common.model.User
@@ -26,6 +28,12 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Query
+
+fun <T> WebSocket.send(what: T) {
+    val converted = gson.toJson(what)
+    Log.e("TAGG", "sending: $converted")
+    send(converted)
+}
 
 interface Basic {
 
@@ -96,7 +104,14 @@ val socket by lazy {
                         text,
                         PlayerJoinedEvent::class.java
                     )
-                    text.contains(TYPE_PLAYER_WON) -> gson.fromJson(text, RoomWinnerEvent::class.java)
+                    text.contains(TYPE_PLAYER_WON) -> gson.fromJson(
+                        text,
+                        RoomWinnerEvent::class.java
+                    )
+                    text.contains(TYPE_AVAILABLE_ROOMS_RESPONSE) -> gson.fromJson(
+                        text,
+                        AvailableRoomsEvent::class.java
+                    )
                     else -> null
                 }
 

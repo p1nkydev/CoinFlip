@@ -1,7 +1,6 @@
 package com.pinkydev.coinflip.flow.create
 
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.SeekBar
 import androidx.fragment.app.Fragment
@@ -9,15 +8,17 @@ import androidx.lifecycle.lifecycleScope
 import com.pinkydev.coinflip.*
 import com.pinkydev.coinflip.flow.auth.user
 import com.pinkydev.coinflip.flow.game.GameFragment
-import com.pinkydev.common.event.SearchGameEvent
+import com.pinkydev.common.event.CreateRoomEvent
+import com.pinkydev.common.event.JoinToRoomEvent
+import com.pinkydev.common.model.CreateRoomRequest
 import com.pinkydev.common.model.Player
-import com.pinkydev.common.model.SearchRequest
+import com.pinkydev.common.model.JoinToRoomRequest
 import kotlinx.android.synthetic.main.fragment_setup_game.*
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import okhttp3.WebSocket
+
 
 class SetupGameFragment : Fragment(R.layout.fragment_setup_game) {
 
@@ -83,23 +84,17 @@ class SetupGameFragment : Fragment(R.layout.fragment_setup_game) {
         }
         btnStartGame.setOnClickListener {
             socket.send(
-                SearchGameEvent(
-                    SearchRequest(
-                        Player(id = user.id, name = user.name, joinedSide = getJoinedSide()),
-                        2,
-                        sbMinimum.progress
+                CreateRoomEvent(
+                    CreateRoomRequest(
+                        Player(id = user.id, name = user.name, getJoinedSide()),
+                        sbMinimum.progress,
                     )
                 )
             )
         }
     }
 
+    // 0 - accent, 1 - primary
     private fun getJoinedSide(): Int = if (sideAccent.alpha == 1f) 0 else 1
-
-    private fun <T> WebSocket.send(what: T) {
-        val converted = gson.toJson(what)
-        Log.e("TAGG", "sending: $converted")
-        send(converted)
-    }
 
 }

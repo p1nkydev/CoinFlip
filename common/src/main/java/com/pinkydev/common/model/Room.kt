@@ -2,9 +2,8 @@ package com.pinkydev.common.model
 
 data class Room(
     val id: Long = 0L,
-    val maxPlayersCount: Int,
     val moneyAmount: Int,
-    var players: List<Player>
+    var players: List<Player>,
 ) {
     override fun hashCode(): Int {
         return super.hashCode()
